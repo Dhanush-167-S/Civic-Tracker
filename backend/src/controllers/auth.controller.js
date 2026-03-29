@@ -24,13 +24,68 @@ async function registerUser(req, res) {
     email: normalizedEmail,
     password,
   };
-  user = await userModel.create(newUser);
+  const user = await userModel.create(newUser);
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
-  req.cookie("token", token);
+  res.cookie("token", token);
   return res.status(201).json({
     success: true,
     message: "User created successfully!",
+    user: {
+      name: user._id,
+      email: user.email,
+      role: user.role,
+      token,
+    },
   });
 }
 
-module.exports = { registerUser };
+async function loginUser(req, res) {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing fields",
+    });
+  }
+  const normalizedEmail = email.toLowerCase();
+  const user = await userModel
+    .findOne({ email: normalizedEmail })
+    .select("+ password");
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  }
+  const validPassword = await user.comparePassword(password);
+  if (!validPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  }
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+  res.cookie("token", token, {
+    httpOnly: true,
+  });
+  return res.status(200).json({
+    success: true,
+    message: "User logged in sucessfully",
+    user: {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token,
+    },
+  });
+}
+
+async function logoutUser(req, res) {
+  res.clearCookie("token");
+  return res.status(200).json({
+    success: true,
+    message: "User logged out successfully!",
+  });
+}
+
+module.exports = { registerUser, loginUser, logoutUser };
