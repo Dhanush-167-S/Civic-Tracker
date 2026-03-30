@@ -14,7 +14,10 @@ app.use(
 );
 
 const authRoutes = require("./routes/auth.routes");
+const complaintRoutes = require("./routes/complaint.routes");
+
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/complaint", complaintRoutes);
 
 app.use(errorMiddleware);
 
