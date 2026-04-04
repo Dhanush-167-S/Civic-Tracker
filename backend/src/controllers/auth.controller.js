@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 async function registerUser(req, res) {
   const { name, email, password } = req.body;
@@ -31,7 +32,7 @@ async function registerUser(req, res) {
     success: true,
     message: "User created successfully!",
     user: {
-      name: user._id,
+      name: user.name,
       email: user.email,
       role: user.role,
       token,
@@ -50,7 +51,7 @@ async function loginUser(req, res) {
   const normalizedEmail = email.toLowerCase();
   const user = await userModel
     .findOne({ email: normalizedEmail })
-    .select("+ password");
+    .select("+password");
   if (!user) {
     return res.status(400).json({
       success: false,
@@ -75,8 +76,8 @@ async function loginUser(req, res) {
       name: user.name,
       email: user.email,
       role: user.role,
-      token,
     },
+    token,
   });
 }
 
@@ -122,4 +123,25 @@ async function logoutUser(req, res) {
   });
 }
 
-module.exports = { registerUser, loginUser, logoutUser };
+async function getMe(req, res) {
+  const id = req.user._id;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid user",
+    });
+  }
+  const user = await userModel.findById(id);
+  return res.status(200).json({
+    success: true,
+    message: "User fetched successfully!",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  });
+}
+
+module.exports = { registerUser, loginUser, logoutUser, getMe };
